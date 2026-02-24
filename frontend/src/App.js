@@ -13,7 +13,7 @@ function App() {
   const [transcript, setTranscript] = useState('');
   const [partialTranscript, setPartialTranscript] = useState('');
   const [insightReport, setInsightReport] = useState(null);
-
+  const [isRecording, setIsRecording] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
   useEffect(() => {
@@ -49,15 +49,17 @@ function App() {
       setPartialTranscript('');
     } else if (data.type === 'insight_report') {
       setInsightReport(data.report);
+      setIsRecording(false);
     } else if (data.type === 'status_update') {
       console.log('Status update:', data.message);
     } else if (data.type === 'error') {
       console.error('WebSocket error:', data.message);
+      setIsRecording(false);
     }
   };
 
   const handleRecordingStateChange = (recording) => {
-    // state handled inside AudioStreamer
+    setIsRecording(recording);
   };
 
   const handleConnectionStatusChange = (status) => {

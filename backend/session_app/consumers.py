@@ -167,8 +167,8 @@ class AudioStreamConsumer(AsyncWebsocketConsumer):
         if not self.audio_chunks:
             return "[No audio recorded]"
 
-        if not getattr(settings, 'GEMINI_API_KEY', None):
-            return "[Transcription failed: GEMINI_API_KEY not configured]"
+        if not getattr(settings, 'ELEVENLABS_API_KEY', None):
+            return "[Transcription failed: ELEVENLABS_API_KEY not configured]"
 
         try:
             # Combine all chunks into one webm file
@@ -180,33 +180,122 @@ class AudioStreamConsumer(AsyncWebsocketConsumer):
 
             try:
                 def _do_transcribe() -> str:
-                    import google.generativeai as genai
+                    from elevenlabs import ElevenLabs
+                    import math
 
-                    if not hasattr(genai, '_configured'):
-                        genai.configure(api_key=settings.GEMINI_API_KEY)
-                        genai._configured = True
+                    client = ElevenLabs(api_key=settings.ELEVENLABS_API_KEY)
 
-                    model_name = getattr(settings, 'GEMINI_MODEL', 'gemini-2.5-flash')
-                    logger.info(f"Gemini active model (transcribe): {model_name}")
-                    model = genai.GenerativeModel(model_name)
-                    
-                    with open(tmp_path, "rb") as f:
-                        audio_data = f.read()
+                    with open(tmp_path, "rb") as audio_file:
+                        result = client.speech_to_text.convert(
+                            model_id="scribe_v1",
+                            file=("audio.webm", audio_file, "audio/webm"),
+                            file_format="other",
+                            language_code="en",
+                            diarize=True,
+                            num_speakers=2,
+                            timestamps_granularity="word",
+                        )
 
-                    prompt = "Please transcribe this audio. It is a clinical dialogue between a doctor and a patient (or similar context). Format it clearly with speaker labels (e.g. Doctor:, Patient:). Provide only the transcription, no extra conversational text."
-                    
-                    try:
-                        response = model.generate_content([
-                            prompt,
-                            {"mime_type": "audio/webm", "data": audio_data}
-                        ])
-                        transcript = (getattr(response, 'text', '') or '').strip()
-                        if transcript:
-                            return transcript
-                        return "[Transcription generated empty text]"
-                    except Exception as e:
-                        logger.error(f"Gemini transcription failed: {e}")
-                        raise
+                    def _format_conversation_from_words(words) -> str | None:
+                        if not words:
+                            return None
+
+                        speaker_map: dict[str, str] = {}
+                        speaker_order: list[str] = []
+
+                        def _speaker_label(speaker_id: str | None) -> str:
+                            if not speaker_id:
+                                return "Speaker"
+                            if speaker_id not in speaker_map:
+                                speaker_order.append(speaker_id)
+                                idx = len(speaker_order) - 1
+                                speaker_map[speaker_id] = "Doctor" if idx == 0 else "Patient" if idx == 1 else f"Speaker {idx + 1}"
+                            return speaker_map[speaker_id]
+
+                        lines: list[str] = []
+                        current_speaker: str | None = None
+                        current_text_parts: list[str] = []
+                        last_end: float | None = None
+
+                        def _flush():
+                            nonlocal current_speaker, current_text_parts
+                            if current_speaker and current_text_parts:
+                                text = ''.join(current_text_parts).strip()
+                                if text:
+                                    lines.append(f"{_speaker_label(current_speaker)}: {text}")
+                            current_speaker = None
+                            current_text_parts = []
+
+                        def _pause_tag(gap_seconds: float) -> str:
+                            # Match your example style: [2.1s pause]
+                            gap = max(0.0, gap_seconds)
+                            return f"[{gap:.1f}s pause] "
+
+                        for w in words:
+                            w_type = getattr(w, 'type', None)
+                            w_text = getattr(w, 'text', '') or ''
+                            w_speaker = getattr(w, 'speaker_id', None)
+                            w_start = getattr(w, 'start', None)
+                            w_end = getattr(w, 'end', None)
+
+                            if w_type == 'audio_event':
+                                # Skip non-lexical events for now
+                                continue
+
+                            # Insert pause markers based on timing gaps between words
+                            if last_end is not None and isinstance(w_start, (int, float)):
+                                gap = float(w_start) - float(last_end)
+                                if gap >= 1.5:
+                                    # If we already started a line, insert pause into same line
+                                    current_text_parts.append(_pause_tag(gap))
+
+                            # Speaker change => new line
+                            if w_speaker and current_speaker and w_speaker != current_speaker:
+                                _flush()
+
+                            if w_speaker and current_speaker is None:
+                                current_speaker = w_speaker
+
+                            # Fallback: if no speaker id, keep same line/speaker
+                            if current_speaker is None:
+                                current_speaker = w_speaker or "unknown"
+
+                            # Preserve spacing tokens if SDK emits them
+                            if w_type == 'spacing':
+                                current_text_parts.append(w_text)
+                            else:
+                                # Ensure spacing between words when not provided
+                                if current_text_parts and not current_text_parts[-1].endswith((' ', '\n')) and not w_text.startswith(('.', ',', '?', '!', ':', ';')):
+                                    current_text_parts.append(' ')
+                                current_text_parts.append(w_text)
+
+                            if isinstance(w_end, (int, float)):
+                                last_end = float(w_end)
+
+                        _flush()
+
+                        if not lines:
+                            return None
+                        return "\n".join(lines)
+
+                    # Prefer structured conversation format when available
+                    words = getattr(result, 'words', None)
+                    formatted = _format_conversation_from_words(words)
+                    if formatted:
+                        return formatted
+
+                    for attr in ("text", "transcript", "transcription"):
+                        val = getattr(result, attr, None)
+                        if isinstance(val, str) and val.strip():
+                            return val.strip()
+
+                    if isinstance(result, dict):
+                        for key in ("text", "transcript", "transcription"):
+                            val = result.get(key)
+                            if isinstance(val, str) and val.strip():
+                                return val.strip()
+
+                    return str(result)
 
                 transcript = await asyncio.to_thread(_do_transcribe)
 

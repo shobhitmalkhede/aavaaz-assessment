@@ -1,10 +1,35 @@
-# IDEs
-.idea/
-.vscode/
-
-# OS specific
 .DS_Store
 Thumbs.db
+*.log
 
-# Misc
-.gemini/
+# env
+.env
+.env.*
+
+# python
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+*.pkl
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# virtualenv
+venv/
+.venv/
+
+# django
+*.sqlite3
+staticfiles/
+media/
+
+# node
+node_modules/
+dist/
+build/
+
+# ide
+.vscode/
+.idea/

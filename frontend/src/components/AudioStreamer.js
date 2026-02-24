@@ -8,6 +8,8 @@ const AudioStreamer = ({
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [websocket, setWebsocket] = useState(null);
   const audioChunksRef = useRef([]);
   const websocketRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -52,6 +54,7 @@ const AudioStreamer = ({
         console.log('WebSocket disconnected');
         setIsConnecting(false);
         onConnectionStatusChange('disconnected');
+        setWebsocket(null);
         websocketRef.current = null;
       };
 
@@ -63,6 +66,7 @@ const AudioStreamer = ({
       };
 
       websocketRef.current = ws;
+      setWebsocket(ws);
     });
   };
 
@@ -115,6 +119,7 @@ const AudioStreamer = ({
 
       // Start recording in 100ms chunks
       recorder.start(100);
+      setMediaRecorder(recorder);
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
       onRecordingStateChange(true);
