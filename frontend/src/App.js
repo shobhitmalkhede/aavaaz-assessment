@@ -6,6 +6,8 @@ import AudioStreamer from './components/AudioStreamer';
 import InsightReport from './components/InsightReport';
 import './App.css';
 
+const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || '').replace(/\/$/, '');
+
 function App() {
   const [patients, setPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -22,7 +24,7 @@ function App() {
 
   const loadPatients = async () => {
     try {
-      const response = await axios.get('/api/patients/');
+      const response = await axios.get(`${API_BASE_URL}/api/patients/`);
       setPatients(response.data);
     } catch (error) {
       console.error('Error loading patients:', error);
@@ -72,6 +74,9 @@ function App() {
         <h1>Aavaaz Clinical Interaction System</h1>
         <div className="connection-status">
           Status: <span className={`status-${connectionStatus}`}>{connectionStatus}</span>
+        </div>
+        <div className="connection-status">
+          Recording: <span className={`status-${isRecording ? 'connected' : 'disconnected'}`}>{isRecording ? 'on' : 'off'}</span>
         </div>
       </header>
 

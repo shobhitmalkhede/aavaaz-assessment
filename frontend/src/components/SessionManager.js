@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
+const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || '').replace(/\/$/, '');
+
 const SessionManager = ({ patient, onSessionStarted }) => {
   const [isCreating, setIsCreating] = useState(false);
 
@@ -8,7 +10,7 @@ const SessionManager = ({ patient, onSessionStarted }) => {
     setIsCreating(true);
 
     try {
-      const response = await axios.post('/api/sessions/', {
+      const response = await axios.post(`${API_BASE_URL}/api/sessions/`, {
         patient_id: patient.id
       });
       onSessionStarted(response.data);

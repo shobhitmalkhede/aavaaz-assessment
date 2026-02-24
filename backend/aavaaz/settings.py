@@ -16,6 +16,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def _csv_env(name: str, default: str = ""):
+    value = os.getenv(name, default)
+    if not value:
+        return []
+    return [v.strip() for v in value.split(',') if v.strip()]
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -135,19 +142,32 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Channels configuration
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+REDIS_URL = os.getenv('REDIS_URL')
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+            },
+        }
     }
-}
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        }
+    }
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+CORS_ALLOWED_ORIGINS = _csv_env(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:3000,http://127.0.0.1:3000'
+)
 
 CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = _csv_env('CSRF_TRUSTED_ORIGINS', '')
 
 # ElevenLabs settings
 ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY')

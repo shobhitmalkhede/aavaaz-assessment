@@ -8,8 +8,6 @@ const AudioStreamer = ({
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [websocket, setWebsocket] = useState(null);
   const audioChunksRef = useRef([]);
   const websocketRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -31,7 +29,12 @@ const AudioStreamer = ({
       setIsConnecting(true);
       onConnectionStatusChange('connecting');
 
-      const wsUrl = `ws://localhost:8000/ws/session/${sessionId}/`;
+      const wsBaseUrl = process.env.REACT_APP_WS_BASE_URL;
+      const wsOrigin = wsBaseUrl
+        ? wsBaseUrl.replace(/\/$/, '')
+        : (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host;
+
+      const wsUrl = `${wsOrigin}/ws/session/${sessionId}/`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
@@ -54,7 +57,6 @@ const AudioStreamer = ({
         console.log('WebSocket disconnected');
         setIsConnecting(false);
         onConnectionStatusChange('disconnected');
-        setWebsocket(null);
         websocketRef.current = null;
       };
 
@@ -66,7 +68,6 @@ const AudioStreamer = ({
       };
 
       websocketRef.current = ws;
-      setWebsocket(ws);
     });
   };
 
@@ -119,7 +120,6 @@ const AudioStreamer = ({
 
       // Start recording in 100ms chunks
       recorder.start(100);
-      setMediaRecorder(recorder);
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
       onRecordingStateChange(true);

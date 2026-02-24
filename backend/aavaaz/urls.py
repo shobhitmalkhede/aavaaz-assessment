@@ -26,7 +26,7 @@ def api_status(request):
             'patients': '/api/patients/',
             'sessions': '/api/sessions/',
             'admin': '/admin/',
-            'websocket': 'ws://localhost:8000/ws/session/<session_id>/'
+            'websocket': '/ws/session/<session_id>/'
         }
     })
 

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
+const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || '').replace(/\/$/, '');
+
 const PatientForm = ({ onPatientCreated }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -23,7 +25,7 @@ const PatientForm = ({ onPatientCreated }) => {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post('/api/patients/', formData);
+      const response = await axios.post(`${API_BASE_URL}/api/patients/`, formData);
       onPatientCreated(response.data);
       setFormData({
         name: '',
