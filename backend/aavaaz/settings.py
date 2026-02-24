@@ -162,7 +162,7 @@ else:
 # CORS settings
 CORS_ALLOWED_ORIGINS = _csv_env(
     'CORS_ALLOWED_ORIGINS',
-    'http://localhost:3000,http://127.0.0.1:3000'
+    'http://localhost:3000,http://127.0.0.1:3000,https://aavaaz-assessment-1.onrender.com'
 )
 
 CORS_ALLOW_CREDENTIALS = True
