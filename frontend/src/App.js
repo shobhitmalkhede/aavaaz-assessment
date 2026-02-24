@@ -25,9 +25,14 @@ function App() {
   const loadPatients = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/patients/`);
-      setPatients(response.data);
+      const data = Array.isArray(response.data) ? response.data : [];
+      if (!Array.isArray(response.data)) {
+        console.error('Unexpected patients response shape:', response.data);
+      }
+      setPatients(data);
     } catch (error) {
       console.error('Error loading patients:', error);
+      setPatients([]);
     }
   };
 
@@ -85,7 +90,7 @@ function App() {
           <div className="patient-section">
             <h2>Select or Create Patient</h2>
             <div className="patient-list">
-              {patients.map(patient => (
+              {(Array.isArray(patients) ? patients : []).map(patient => (
                 <div
                   key={patient.id}
                   className="patient-card"
