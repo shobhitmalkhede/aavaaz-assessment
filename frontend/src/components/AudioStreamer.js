@@ -29,10 +29,24 @@ const AudioStreamer = ({
       setIsConnecting(true);
       onConnectionStatusChange('connecting');
 
-      const wsBaseUrl = process.env.REACT_APP_WS_BASE_URL;
-      const wsOrigin = wsBaseUrl
-        ? wsBaseUrl.replace(/\/$/, '')
-        : (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host;
+      let wsOrigin = process.env.REACT_APP_WS_BASE_URL || process.env.REACT_APP_WS_URL || '';
+
+      if (!wsOrigin) {
+        let apiUrl = (process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL || '').trim();
+        if (apiUrl) {
+          if (apiUrl.startsWith('//')) {
+            apiUrl = window.location.protocol + apiUrl;
+          } else if (!apiUrl.startsWith('http')) {
+            apiUrl = window.location.protocol + '//' + apiUrl;
+          }
+          wsOrigin = apiUrl.replace(/^http/i, 'ws');
+        } else {
+          const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+          const port = isLocalhost ? ':8000' : (window.location.port ? ':' + window.location.port : '');
+          wsOrigin = (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.hostname + port;
+        }
+      }
+      wsOrigin = wsOrigin.replace(/\/$/, '');
 
       const wsUrl = `${wsOrigin}/ws/session/${sessionId}/`;
       const ws = new WebSocket(wsUrl);

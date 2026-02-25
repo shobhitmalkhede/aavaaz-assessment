@@ -18,7 +18,9 @@ load_dotenv()
 
 
 def _csv_env(name: str, default: str = ""):
-    value = os.getenv(name, default)
+    value = os.getenv(name)
+    if value is None:
+        value = default
     if not value:
         return []
     return [v.strip() for v in value.split(',') if v.strip()]
@@ -162,7 +164,7 @@ else:
 # CORS settings
 CORS_ALLOWED_ORIGINS = _csv_env(
     'CORS_ALLOWED_ORIGINS',
-    'http://localhost:3000,http://127.0.0.1:3000,https://aavaaz-assessment-1.onrender.com'
+    'http://localhost:3000,http://127.0.0.1:3000,https://aavaaz-assessment-1.onrender.com,https://aavaaz-assessment.onrender.com'
 )
 
 CORS_ALLOW_CREDENTIALS = True

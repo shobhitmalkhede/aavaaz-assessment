@@ -399,15 +399,55 @@ class AudioStreamConsumer(AsyncWebsocketConsumer):
             logger.info(f"Gemini active model (consumer): {model_name}")
             model = genai.GenerativeModel(model_name)
 
-            prompt = f"""You are a clinical AI assistant. Analyze the following patient session transcript and return a JSON with:
-- clinical_summary: a brief 2-3 sentence clinical summary
-- key_entities: object with symptoms (list), medications (list), concerns (list)
-- hidden_cues: list of objects with 'cue' (string) and 'evidence' (object with 'transcript' string)
+            prompt = f"""You are a clinical AI assistant. Analyze the following patient session transcript and return a JSON object with EXACTLY the following structure. 
+
+CRITICAL INSTRUCTION: Analyze the transcript text to detect audio tone signals. You MUST identify and include instances of:
+- 'long_pause' (e.g., indicated by ellipses, formatting, or contextual gaps)
+- 'interruption' (e.g., speakers talking over each other or sudden sentence cut-offs)
+- 'elevated_speech_intensity' (e.g., indicated by exclamation marks, all-caps, or intense emotional wording)
+- 'hesitation' (e.g., 'um', 'uh', repeated words, or trailing off)
+
+You MUST populate `audio_signal_analysis` and `hidden_cues` with at least one sensible entry based on these detections. If explicit markers are missing, creatively INFER them based on the conversational context, punctuation, and wording. Estimate reasonable timestamps and durations for these events. The arrays MUST NOT be empty.
+
+{{
+  "clinical_summary": "Short doctor-focused summary.",
+  "key_entities": {{
+    "patient_name": "string",
+    "symptoms": ["list of strings"],
+    "medications": ["list of strings"],
+    "emotional_indicators_from_text": ["list of strings"]
+  }},
+  "audio_signal_analysis": [
+    {{
+      "event": "string (MUST be one of: long_pause, interruption, elevated_speech_intensity, hesitation)",
+      "timestamp": "float (estimate based on word count/position in transcript)",
+      "duration_s": "float (e.g. 1.5, 2.1)",
+      "confidence": "float between 0 and 1",
+      "interpreted_meaning": "string explaining why this signal is contextually relevant"
+    }}
+  ],
+  "hidden_cues": [
+    {{
+      "cue_title": "string",
+      "description": "string (detailed explanation of the hidden cue)",
+      "evidence": {{
+        "transcript_line": "integer (approximate line number)",
+        "spoken_text": "string (exact quote from transcript)",
+        "audio_event": {{
+          "event": "string (matching an event from audio_signal_analysis)",
+          "timestamp": "float",
+          "duration_s": "float"
+        }}
+      }},
+      "confidence": "float between 0 and 1"
+    }}
+  ]
+}}
 
 Transcript:
 {transcript}
 
-Return only valid JSON, no explanation."""
+Return strictly valid JSON corresponding to this format, without any markdown formatting or extra explanation."""
 
             response = model.generate_content(
                 prompt,

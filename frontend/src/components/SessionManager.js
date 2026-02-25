@@ -23,21 +23,47 @@ const SessionManager = ({ patient, onSessionStarted }) => {
   };
 
   return (
-    <div className="session-manager">
-      <div className="form-container">
-        <h3>Start New Session</h3>
-        <p>
-          <strong>Patient:</strong> {patient.name}<br />
-          <strong>Diagnosis:</strong> {patient.diagnosis}
-        </p>
-        <button 
-          onClick={handleStartSession}
-          className="btn btn-success"
-          disabled={isCreating}
-        >
-          {isCreating ? 'Starting...' : 'Start Session'}
-        </button>
-      </div>
+    <div className="session-manager-layout">
+      <section className="session-manager-hero" aria-label="Session start introduction">
+        <div className="session-manager-hero-inner">
+          <h2 className="session-manager-hero-title">LET'S START
+            <br />YOUR
+            <br />SESSION
+          </h2>
+
+          <div className="session-manager-hero-contact">
+            <div className="session-manager-hero-contact-title">SESSION INFO</div>
+            <div className="session-manager-hero-contact-item">Patient: {patient.name}</div>
+            <div className="session-manager-hero-contact-item">DOB: {patient.dob}</div>
+            <div className="session-manager-hero-contact-item">Diagnosis: {patient.diagnosis}</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="session-manager-panel" aria-label="Start session form">
+        <div className="session-manager-panel-inner">
+          <h3 className="session-manager-panel-title">Start New Session</h3>
+
+          <div className="session-manager-patient-info">
+            <div className="session-manager-info-row">
+              <span className="session-manager-info-label">Patient</span>
+              <span className="session-manager-info-value">{patient.name}</span>
+            </div>
+            <div className="session-manager-info-row">
+              <span className="session-manager-info-label">Diagnosis</span>
+              <span className="session-manager-info-value">{patient.diagnosis}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleStartSession}
+            className="btn session-manager-submit"
+            disabled={isCreating}
+          >
+            {isCreating ? 'Starting...' : 'Start Session'}
+          </button>
+        </div>
+      </section>
     </div>
   );
 };

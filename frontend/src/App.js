@@ -74,97 +74,83 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Aavaaz Clinical Interaction System</h1>
-        <div className="connection-status">
-          Status: <span className={`status-${connectionStatus}`}>{connectionStatus}</span>
-        </div>
-        <div className="connection-status">
-          Recording: <span className={`status-${isRecording ? 'connected' : 'disconnected'}`}>{isRecording ? 'on' : 'off'}</span>
-        </div>
-      </header>
-
+    <div className="App App--landing">
       <main className="App-main">
         {!selectedPatient ? (
-          <div className="patient-section">
-            <h2>Select or Create Patient</h2>
-            <div className="patient-list">
-              {(Array.isArray(patients) ? patients : []).map(patient => (
-                <div
-                  key={patient.id}
-                  className="patient-card"
-                  onClick={() => setSelectedPatient(patient)}
-                >
-                  <h3>{patient.name}</h3>
-                  <p><strong>DOB:</strong> {patient.dob}</p>
-                  <p><strong>Diagnosis:</strong> {patient.diagnosis}</p>
-                </div>
-              ))}
-            </div>
-            <PatientForm onPatientCreated={handlePatientCreated} />
-          </div>
+          <PatientForm onPatientCreated={handlePatientCreated} />
         ) : (
-          <div className="session-section">
-            <div className="patient-info">
-              <h2>{selectedPatient.name}</h2>
-              <p><strong>DOB:</strong> {selectedPatient.dob}</p>
-              <p><strong>Diagnosis:</strong> {selectedPatient.diagnosis}</p>
-              <button
-                onClick={() => {
-                  setSelectedPatient(null);
-                  setCurrentSession(null);
-                  setTranscript('');
-                  setPartialTranscript('');
-                  setInsightReport(null);
-                }}
-                className="back-button"
-              >
-                ← Back to Patients
-              </button>
+          !currentSession ? (
+            <SessionManager
+              patient={selectedPatient}
+              onSessionStarted={handleSessionStarted}
+            />
+          ) : (
+            <div className="session-active-layout">
+              <section className="session-active-hero" aria-label="Session active introduction">
+                <div className="session-active-hero-inner">
+                  <h2 className="session-active-hero-title">SESSION
+                    <br />IN
+                    <br />PROGRESS
+                  </h2>
+
+                  <div className="session-active-hero-contact">
+                    <div className="session-active-hero-contact-title">SESSION INFO</div>
+                    <div className="session-active-hero-contact-item">Patient: {selectedPatient.name}</div>
+                    <div className="session-active-hero-contact-item">DOB: {selectedPatient.dob}</div>
+                    <div className="session-active-hero-contact-item">Diagnosis: {selectedPatient.diagnosis}</div>
+                    <div className="session-active-hero-contact-item">Session ID: {currentSession.id}</div>
+                    <div className="session-active-hero-contact-item">Status: {currentSession.status}</div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="session-active-panel" aria-label="Recording and transcript">
+                <div className="session-active-panel-inner">
+                  <div className="session-active-header">
+                    <h3 className="session-active-panel-title">Session Active</h3>
+                    <button
+                      onClick={() => {
+                        setSelectedPatient(null);
+                        setCurrentSession(null);
+                        setTranscript('');
+                        setPartialTranscript('');
+                        setInsightReport(null);
+                      }}
+                      className="session-active-back-button"
+                    >
+                      ← Back
+                    </button>
+                  </div>
+
+                  <AudioStreamer
+                    sessionId={currentSession.id}
+                    onTranscriptUpdate={handleTranscriptUpdate}
+                    onRecordingStateChange={handleRecordingStateChange}
+                    onConnectionStatusChange={handleConnectionStatusChange}
+                  />
+
+                  <div className="transcript-section">
+                    <h3>Live Transcript</h3>
+                    {partialTranscript && (
+                      <div className="partial-transcript">
+                        <em>{partialTranscript}</em>
+                      </div>
+                    )}
+                    {transcript && (
+                      <div className="final-transcript">
+                        <strong>Final Transcript:</strong>
+                        <p>{transcript}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {insightReport && (
+                    <InsightReport report={insightReport} />
+                  )}
+                </div>
+              </section>
             </div>
-
-            {!currentSession ? (
-              <SessionManager
-                patient={selectedPatient}
-                onSessionStarted={handleSessionStarted}
-              />
-            ) : (
-              <div className="session-active">
-                <div className="session-info">
-                  <h3>Session Active</h3>
-                  <p><strong>Session ID:</strong> {currentSession.id}</p>
-                  <p><strong>Status:</strong> {currentSession.status}</p>
-                </div>
-
-                <AudioStreamer
-                  sessionId={currentSession.id}
-                  onTranscriptUpdate={handleTranscriptUpdate}
-                  onRecordingStateChange={handleRecordingStateChange}
-                  onConnectionStatusChange={handleConnectionStatusChange}
-                />
-
-                <div className="transcript-section">
-                  <h3>Live Transcript</h3>
-                  {partialTranscript && (
-                    <div className="partial-transcript">
-                      <em>{partialTranscript}</em>
-                    </div>
-                  )}
-                  {transcript && (
-                    <div className="final-transcript">
-                      <strong>Final Transcript:</strong>
-                      <p>{transcript}</p>
-                    </div>
-                  )}
-                </div>
-
-                {insightReport && (
-                  <InsightReport report={insightReport} />
-                )}
-              </div>
-            )}
-          </div>
+          )
         )}
       </main>
     </div>
